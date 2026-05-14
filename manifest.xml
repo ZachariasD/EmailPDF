@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="MailApp">
-  <Id>b2a1c8f5-9d3e-4b7a-8f2c-1e4d6a8c9b0a</Id>
-  <Version>1.0.1</Version>
+  <Id>f47ac10b-58cc-4372-a567-0e02b2c3d479</Id>
+  <Version>1.0.3</Version>
   <ProviderName>Internal Architecture</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Archive to Project" />
@@ -12,7 +12,7 @@
   </Hosts>
   <Requirements>
     <Sets>
-      <Set Name="Mailbox" MinVersion="1.1" />
+      <Set Name="Mailbox" MinVersion="1.3" />
     </Sets>
   </Requirements>
   <FormSettings>
@@ -49,8 +49,8 @@
                   </Supertip>
                   <Icon>
                     <bt:Image size="16" resid="icon16" />
-                    <bt:Image size="32" resid="residIcon32" />
-                    <bt:Image size="80" resid="residIcon80" />
+                    <bt:Image size="32" resid="icon32" />
+                    <bt:Image size="80" resid="icon80" />
                   </Icon>
                   <Action xsi:type="ShowTaskpane">
                     <SourceLocation resid="taskpaneUrl" />
@@ -65,18 +65,18 @@
     <Resources>
       <bt:Images xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
         <bt:Image id="icon16" DefaultValue="https://zachariasd.github.io/EmailPDF/smurf.png" />
-        <bt:Image id="residIcon32" DefaultValue="https://zachariasd.github.io/EmailPDF/smurf.png" />
-        <bt:Image id="residIcon80" DefaultValue="https://zachariasd.github.io/EmailPDF/smurf.png" />
+        <bt:Image id="icon32" DefaultValue="https://zachariasd.github.io/EmailPDF/smurf.png" />
+        <bt:Image id="icon80" DefaultValue="https://zachariasd.github.io/EmailPDF/smurf.png" />
       </bt:Images>
       <bt:Urls xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
         <bt:Url id="taskpaneUrl" DefaultValue="https://zachariasd.github.io/EmailPDF/taskpane.html" />
       </bt:Urls>
       <bt:ShortStrings xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
-        <bt:String id="groupLabel" DefaultValue="Project Archiver" />
+        <bt:String id="groupLabel" DefaultValue="Archive" />
         <bt:String id="paneButtonLabel" DefaultValue="Archive to Project" />
       </bt:ShortStrings>
       <bt:LongStrings xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
-        <bt:String id="paneButtonToolTip" DefaultValue="Click to select a project and save this email as a PDF." />
+        <bt:String id="paneButtonToolTip" DefaultValue="Export this email to a project folder." />
       </bt:LongStrings>
     </Resources>
   </VersionOverrides>
