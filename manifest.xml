@@ -1,18 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="MailApp">
-  <Id>f47ac10b-58cc-4372-a567-0e02b2c3d479</Id>
-  <Version>1.0.3</Version>
+  <Id>d25687a1-1234-4a5b-bcde-9f8e7d6c5b4a</Id>
+  <Version>1.0.4</Version>
   <ProviderName>Internal Architecture</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
   <DisplayName DefaultValue="Archive to Project" />
   <Description DefaultValue="Exports selected email to OneDrive project directory as PDF." />
   <IconUrl DefaultValue="https://zachariasd.github.io/EmailPDF/smurf.png" />
+  <SupportUrl DefaultValue="https://zachariasd.github.io/EmailPDF/" />
   <Hosts>
     <Host Name="Mailbox" />
   </Hosts>
   <Requirements>
     <Sets>
-      <Set Name="Mailbox" MinVersion="1.3" />
+      <Set Name="Mailbox" MinVersion="1.1" />
     </Sets>
   </Requirements>
   <FormSettings>
@@ -27,57 +28,5 @@
   <Rule xsi:type="RuleCollection" Mode="Or">
     <Rule xsi:type="ItemIs" ItemType="Message" FormType="Read" />
   </Rule>
-  
-  <VersionOverrides xmlns="http://schemas.microsoft.com/office/mailappversionoverrides/1.0" xsi:type="VersionOverridesV1_0">
-    <Requirements>
-      <bt:Sets DefaultMinVersion="1.3" xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
-        <bt:Set Name="Mailbox" />
-      </bt:Sets>
-    </Requirements>
-    <Hosts>
-      <Host xsi:type="MailHost">
-        <DesktopFormFactor>
-          <ExtensionPoint xsi:type="MessageReadCommandSurface">
-            <OfficeTab id="TabDefault">
-              <Group id="msgReadGroup">
-                <Label resid="groupLabel" />
-                <Control xsi:type="Button" id="msgReadOpenPaneButton">
-                  <Label resid="paneButtonLabel" />
-                  <Supertip>
-                    <Title resid="paneButtonLabel" />
-                    <Description resid="paneButtonToolTip" />
-                  </Supertip>
-                  <Icon>
-                    <bt:Image size="16" resid="icon16" />
-                    <bt:Image size="32" resid="icon32" />
-                    <bt:Image size="80" resid="icon80" />
-                  </Icon>
-                  <Action xsi:type="ShowTaskpane">
-                    <SourceLocation resid="taskpaneUrl" />
-                  </Action>
-                </Control>
-              </Group>
-            </OfficeTab>
-          </ExtensionPoint>
-        </DesktopFormFactor>
-      </Host>
-    </Hosts>
-    <Resources>
-      <bt:Images xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
-        <bt:Image id="icon16" DefaultValue="https://zachariasd.github.io/EmailPDF/smurf.png" />
-        <bt:Image id="icon32" DefaultValue="https://zachariasd.github.io/EmailPDF/smurf.png" />
-        <bt:Image id="icon80" DefaultValue="https://zachariasd.github.io/EmailPDF/smurf.png" />
-      </bt:Images>
-      <bt:Urls xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
-        <bt:Url id="taskpaneUrl" DefaultValue="https://zachariasd.github.io/EmailPDF/taskpane.html" />
-      </bt:Urls>
-      <bt:ShortStrings xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
-        <bt:String id="groupLabel" DefaultValue="Archive" />
-        <bt:String id="paneButtonLabel" DefaultValue="Archive to Project" />
-      </bt:ShortStrings>
-      <bt:LongStrings xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0">
-        <bt:String id="paneButtonToolTip" DefaultValue="Export this email to a project folder." />
-      </bt:LongStrings>
-    </Resources>
-  </VersionOverrides>
+  <DisableEntityHighlighting>false</DisableEntityHighlighting>
 </OfficeApp>
