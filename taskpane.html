@@ -2,25 +2,44 @@
 <html>
 <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 16px; margin: 0; }
-        label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 6px; }
-        select, button { width: 100%; padding: 8px; margin-bottom: 12px; box-sizing: border-box; font-size: 14px; }
-        button { background-color: #0078d4; color: white; border: none; cursor: pointer; font-weight: bold; }
-        button:disabled { background-color: #c8c8c8; cursor: not-allowed; }
-        #status { font-size: 12px; margin-top: 10px; color: #333; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 16px; margin: 0; box-sizing: border-box; }
+        .label { font-size: 11px; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; color: #555; }
+        
+        .quick-container { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px dashed #edebe9; display: none; }
+        .quick-list { display: flex; flex-direction: column; gap: 6px; max-height: 150px; overflow-y: auto; }
+        .quick-btn { background-color: #107c41; color: white; width: 100%; padding: 10px 12px; font-size: 13px; border: none; cursor: pointer; font-weight: bold; text-align: left; display: flex; justify-content: space-between; border-radius: 2px; }
+        .quick-btn:hover { background-color: #0b5930; }
+        
+        .directory-box { border: 1px solid #ababab; max-height: 220px; overflow-y: auto; margin-bottom: 12px; border-radius: 2px; background: #fff; }
+        .folder-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f3f3f3; font-size: 13px; display: flex; align-items: center; }
+        .folder-item:hover { background-color: #f3f2f1; }
+        .folder-item.selected { background-color: #edebe9; font-weight: bold; border-left: 4px solid #0078d4; }
+        .folder-item.back-btn { font-weight: bold; color: #0078d4; background-color: #f8f8f8; position: sticky; top: 0; border-bottom: 2px solid #eaeaea; }
+        
+        .icon { display: inline-block; width: 20px; color: #888; }
+        
+        .standard-btn { width: 100%; padding: 10px; font-size: 14px; background-color: #0078d4; color: white; border: none; cursor: pointer; font-weight: bold; }
+        .standard-btn:disabled { background-color: #c8c8c8; cursor: not-allowed; }
+        #status { font-size: 12px; margin-top: 10px; font-weight: 500; }
+        #currentPathDisplay { font-size: 10px; color: #888; margin-bottom: 4px; word-break: break-all; }
     </style>
 </head>
 <body>
-    <label for="projectSelect">Target Project Destination</label>
-    <select id="projectSelect">
-        <option value="">Loading projects...</option>
-    </select>
+    <div id="quickSection" class="quick-container">
+        <div class="label">Recent Projects</div>
+        <div id="quickList" class="quick-list"></div>
+    </div>
+
+    <div class="label">Browse Directory</div>
+    <div id="currentPathDisplay">/Project_Folder/</div>
+    <div id="directoryBrowser" class="directory-box">
+        <div style="padding:12px; color:#666; font-size:13px;">Connecting...</div>
+    </div>
     
-    <button id="executeBtn" disabled>Archive Email</button>
+    <button id="executeBtn" class="standard-btn" disabled>Archive Email</button>
     <div id="status"></div>
 
     <script src="taskpane.js"></script>
