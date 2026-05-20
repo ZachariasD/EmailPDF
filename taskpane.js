@@ -1,13 +1,14 @@
-const GET_PROJECTS_URL = "https://default062a8e8e449048f39ee3b309e2cfa4.ad.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/405ddbd55c224c9ebe1d2bc5b85a6597/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=P9Tu-84M5_ZRI2lryh6GQTPq9erJ9yTd9JNk0CVZli4"; 
+const GET_PROJECTS_URL = "https://default062a8e8e449048f39ee3b309e2cfa4.ad.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/405ddbd55c224c9ebe1d2bc5b85a6597/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=P9Tu-84M5_ZRI2lryh6GQTPq9erJ9yTd9JNk0CVZli4";
 const EXECUTE_ARCHIVE_URL = "https://emailpdfbackend.vercel.app/api/archive";
+const STORAGE_KEY = "recentProjectsList";
 
-let currentDirectoryPath = ""; 
-let selectedTargetPath = ""; 
+let currentDirectoryPath = "";
+let selectedTargetPath = "";
 
 Office.onReady((info) => {
     if (info.host === Office.HostType.Outlook) {
         console.log("System Ready: Initializing UI...");
-        renderQuickArchiveUI();
+        renderQuickArchiveUI(); // Render on startup
         fetchDirectories("", 2);
         document.getElementById("executeBtn").onclick = () => triggerArchivePipeline(selectedTargetPath);
     }
@@ -15,17 +16,18 @@ Office.onReady((info) => {
 
 const isProjectFolder = (folderName) => /^\d{5}/.test(folderName);
 
+// 1. Unified Render Function
 function renderQuickArchiveUI() {
     const quickSection = document.getElementById("quickSection");
     const quickList = document.getElementById("quickList");
     
     let recents = [];
-    try { 
-        const stored = localStorage.getItem("recentProjectsList");
-        recents = stored ? JSON.parse(stored) : []; 
-    } catch(e) { 
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        recents = stored ? JSON.parse(stored) : [];
+    } catch(e) {
         console.error("UI Render Error:", e);
-        recents = []; 
+        recents = [];
     }
 
     if (recents && recents.length > 0) {
@@ -33,7 +35,7 @@ function renderQuickArchiveUI() {
         recents.forEach(pathData => {
             const btn = document.createElement("button");
             btn.className = "quick-btn";
-            const displayName = pathData.split('/').pop(); 
+            const displayName = pathData.split('/').pop();
             btn.innerHTML = `<span>${displayName}</span><span>&rarr;</span>`;
             btn.onclick = () => triggerArchivePipeline(pathData);
             quickList.appendChild(btn);
@@ -44,41 +46,31 @@ function renderQuickArchiveUI() {
     }
 }
 
+// 2. Unified Storage Logic
 function pushToRecentsStack(fullPath) {
-    console.log("DEBUG: Attempting to save path:", fullPath);
-
-    // 1. Check path validity
-    if (!fullPath) {
-        console.error("DEBUG: Path is empty/undefined!");
-        return;
-    }
-    
-    // LOGIC CHECK: Does your path actually have a "/"? 
-    // If not, this is why it's not saving.
-    if (!fullPath.includes('/')) {
-        console.warn("DEBUG: Path rejected - no '/' found in:", fullPath);
-        return;
-    }
+    if (!fullPath) return;
 
     let recents = [];
-    try { 
-        const stored = localStorage.getItem("recentProjectsList");
-        console.log("DEBUG: Found in storage:", stored);
-        recents = stored ? JSON.parse(stored) : []; 
-    } catch(e) { 
-        console.error("DEBUG: JSON Parse error:", e);
-        recents = []; 
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        recents = stored ? JSON.parse(stored) : [];
+    } catch(e) {
+        recents = [];
     }
 
+    // Filter out existing to avoid duplicates, add to front
     recents = recents.filter(item => item !== fullPath);
     recents.unshift(fullPath);
     
+    // Keep only last 10
     if (recents.length > 10) recents = recents.slice(0, 10);
     
-    // SAVE
-    localStorage.setItem("recentProjectsList", JSON.stringify(recents));
-    console.log("DEBUG: Saved successfully. New list:", recents);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(recents));
+    
+    // Trigger immediate UI refresh
+    renderQuickArchiveUI();
 }
+
 async function fetchDirectories(path, expectedSegments) {
     const container = document.getElementById("directoryBrowser");
     const pathDisplay = document.getElementById("currentPathDisplay");
@@ -140,51 +132,36 @@ async function fetchDirectories(path, expectedSegments) {
     }
 }
 
+// 3. Updated Pipeline with UI callback
 async function triggerArchivePipeline(targetFullPath) {
     const status = document.getElementById("status");
     const item = Office.context.mailbox.item;
 
-    if (!targetFullPath) return;
+    if (!item || !item.itemId) return;
 
-    status.innerText = "Transmitting...";
+    status.innerText = "Archiving...";
     
-    // DEBUG: Log the inputs
-    console.log("DEBUG: Target Path:", targetFullPath);
-    console.log("DEBUG: Item ID (Raw):", item.itemId);
-
     try {
         const convertedRestId = Office.context.mailbox.convertToRestId(
             item.itemId,
             Office.MailboxEnums.RestVersion.v2_0
         );
-        console.log("DEBUG: Converted REST ID:", convertedRestId);
 
-        const payload = {
-            itemId: convertedRestId,
-            targetProject: targetFullPath
-        };
-        console.log("DEBUG: Request Payload:", JSON.stringify(payload));
-        console.log("DEBUG: Executing fetch to:", EXECUTE_ARCHIVE_URL);
-        console.log("DEBUG: Payload:", JSON.stringify(payload));
         const response = await fetch(EXECUTE_ARCHIVE_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ itemId: convertedRestId, targetProject: targetFullPath })
         });
 
         if (response.ok) {
-            console.log("DEBUG: Fetch successful");
-            status.innerText = `Success!`;
-            status.style.color = "green";
-            pushToRecentsStack(targetFullPath);
-            renderQuickArchiveUI(); 
+            status.innerText = "Success!";
+            // Update UI and Storage
+            pushToRecentsStack(targetFullPath); 
         } else {
-            console.error("DEBUG: Server error:", response.status, response.statusText);
-            throw new Error(`Server status: ${response.status}`);
+            status.innerText = "Error: " + response.status;
         }
     } catch (error) {
-        console.error("DEBUG: Fetch Error caught:", error);
-        status.innerText = "Archive failed (check console).";
-        status.style.color = "red";
+        console.error(error);
+        status.innerText = "Failed";
     }
 }
