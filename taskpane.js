@@ -164,7 +164,8 @@ async function triggerArchivePipeline(targetFullPath) {
             targetProject: targetFullPath
         };
         console.log("DEBUG: Request Payload:", JSON.stringify(payload));
-
+        console.log("DEBUG: Executing fetch to:", EXECUTE_ARCHIVE_URL);
+        console.log("DEBUG: Payload:", JSON.stringify(payload));
         const response = await fetch(EXECUTE_ARCHIVE_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
