@@ -141,44 +141,49 @@ async function fetchDirectories(path, expectedSegments) {
 }
 
 async function triggerArchivePipeline(targetFullPath) {
-    if (!targetFullPath) return;
-
-    const standardBtn = document.getElementById("executeBtn");
     const status = document.getElementById("status");
     const item = Office.context.mailbox.item;
 
-    standardBtn.disabled = true;
-    status.innerText = "Transmitting to engine...";
-    status.style.color = "#333";
+    if (!targetFullPath) return;
+
+    status.innerText = "Transmitting...";
+    
+    // DEBUG: Log the inputs
+    console.log("DEBUG: Target Path:", targetFullPath);
+    console.log("DEBUG: Item ID (Raw):", item.itemId);
 
     try {
         const convertedRestId = Office.context.mailbox.convertToRestId(
             item.itemId,
             Office.MailboxEnums.RestVersion.v2_0
         );
+        console.log("DEBUG: Converted REST ID:", convertedRestId);
+
+        const payload = {
+            itemId: convertedRestId,
+            targetProject: targetFullPath
+        };
+        console.log("DEBUG: Request Payload:", JSON.stringify(payload));
 
         const response = await fetch(EXECUTE_ARCHIVE_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                itemId: convertedRestId,
-                targetProject: targetFullPath
-            })
+            body: JSON.stringify(payload)
         });
 
         if (response.ok) {
-            status.innerText = `Success: Archived to ${targetFullPath.split('/').pop()}`;
+            console.log("DEBUG: Fetch successful");
+            status.innerText = `Success!`;
             status.style.color = "green";
             pushToRecentsStack(targetFullPath);
             renderQuickArchiveUI(); 
         } else {
-            throw new Error("Server returned non-OK status");
+            console.error("DEBUG: Server error:", response.status, response.statusText);
+            throw new Error(`Server status: ${response.status}`);
         }
     } catch (error) {
-        console.error("Archive Failure:", error);
-        status.innerText = "Archive failed. Check connection.";
+        console.error("DEBUG: Fetch Error caught:", error);
+        status.innerText = "Archive failed (check console).";
         status.style.color = "red";
-    } finally {
-        standardBtn.disabled = (selectedTargetPath === "");
     }
 }
