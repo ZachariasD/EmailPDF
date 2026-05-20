@@ -45,31 +45,40 @@ function renderQuickArchiveUI() {
 }
 
 function pushToRecentsStack(fullPath) {
-    // GUARD CLAUSE: Strict validation
-    if (!fullPath || !fullPath.includes('/')) {
-        console.warn("Rejecting invalid path (missing folder hierarchy):", fullPath);
+    console.log("DEBUG: Attempting to save path:", fullPath);
+
+    // 1. Check path validity
+    if (!fullPath) {
+        console.error("DEBUG: Path is empty/undefined!");
+        return;
+    }
+    
+    // LOGIC CHECK: Does your path actually have a "/"? 
+    // If not, this is why it's not saving.
+    if (!fullPath.includes('/')) {
+        console.warn("DEBUG: Path rejected - no '/' found in:", fullPath);
         return;
     }
 
     let recents = [];
     try { 
         const stored = localStorage.getItem("recentProjectsList");
+        console.log("DEBUG: Found in storage:", stored);
         recents = stored ? JSON.parse(stored) : []; 
     } catch(e) { 
+        console.error("DEBUG: JSON Parse error:", e);
         recents = []; 
     }
 
-    // Deduplicate
     recents = recents.filter(item => item !== fullPath);
-    // Insert at front
     recents.unshift(fullPath);
-    // Cap
+    
     if (recents.length > 10) recents = recents.slice(0, 10);
     
+    // SAVE
     localStorage.setItem("recentProjectsList", JSON.stringify(recents));
-    console.log("Saved new project to history:", fullPath);
+    console.log("DEBUG: Saved successfully. New list:", recents);
 }
-
 async function fetchDirectories(path, expectedSegments) {
     const container = document.getElementById("directoryBrowser");
     const pathDisplay = document.getElementById("currentPathDisplay");
