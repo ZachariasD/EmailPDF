@@ -6,8 +6,9 @@ let selectedTargetPath = "";
 
 Office.onReady((info) => {
     if (info.host === Office.HostType.Outlook) {
+        console.log("System Ready: Initializing UI...");
         renderQuickArchiveUI();
-        fetchDirectories("", 2); // Root level expects exactly 2 path segments
+        fetchDirectories("", 2);
         document.getElementById("executeBtn").onclick = () => triggerArchivePipeline(selectedTargetPath);
     }
 });
@@ -17,12 +18,17 @@ const isProjectFolder = (folderName) => /^\d{5}/.test(folderName);
 function renderQuickArchiveUI() {
     const quickSection = document.getElementById("quickSection");
     const quickList = document.getElementById("quickList");
-    let recents = [];
     
-    try { recents = JSON.parse(localStorage.getItem("recentProjectsList")) || []; } 
-    catch(e) { recents = []; }
+    let recents = [];
+    try { 
+        const stored = localStorage.getItem("recentProjectsList");
+        recents = stored ? JSON.parse(stored) : []; 
+    } catch(e) { 
+        console.error("UI Render Error:", e);
+        recents = []; 
+    }
 
-    if (recents.length > 0) {
+    if (recents && recents.length > 0) {
         quickList.innerHTML = "";
         recents.forEach(pathData => {
             const btn = document.createElement("button");
@@ -39,15 +45,29 @@ function renderQuickArchiveUI() {
 }
 
 function pushToRecentsStack(fullPath) {
-    let recents = [];
-    try { recents = JSON.parse(localStorage.getItem("recentProjectsList")) || []; } 
-    catch(e) { recents = []; }
+    // GUARD CLAUSE: Strict validation
+    if (!fullPath || !fullPath.includes('/')) {
+        console.warn("Rejecting invalid path (missing folder hierarchy):", fullPath);
+        return;
+    }
 
+    let recents = [];
+    try { 
+        const stored = localStorage.getItem("recentProjectsList");
+        recents = stored ? JSON.parse(stored) : []; 
+    } catch(e) { 
+        recents = []; 
+    }
+
+    // Deduplicate
     recents = recents.filter(item => item !== fullPath);
+    // Insert at front
     recents.unshift(fullPath);
+    // Cap
     if (recents.length > 10) recents = recents.slice(0, 10);
     
     localStorage.setItem("recentProjectsList", JSON.stringify(recents));
+    console.log("Saved new project to history:", fullPath);
 }
 
 async function fetchDirectories(path, expectedSegments) {
@@ -64,14 +84,12 @@ async function fetchDirectories(path, expectedSegments) {
         const response = await fetch(GET_PROJECTS_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                path: path,
-                expectedSegments: expectedSegments
-            })
+            body: JSON.stringify({ path, expectedSegments })
         });
         
-        if (!response.ok) throw new Error();
+        if (!response.ok) throw new Error("API Connection Failed");
         const folders = await response.json();
+        
         container.innerHTML = "";
         
         if (path !== "") {
@@ -82,21 +100,14 @@ async function fetchDirectories(path, expectedSegments) {
                 let segments = path.split('/');
                 segments.pop();
                 currentDirectoryPath = segments.join('/');
-                // Moving backward drops expected segments calculation by 1
                 fetchDirectories(currentDirectoryPath, expectedSegments - 1);
             };
             container.appendChild(backDiv);
         }
 
-        if (folders.length === 0) {
-            container.innerHTML += '<div style="padding:12px;color:#666;">Empty directory.</div>';
-            return;
-        }
-
         folders.forEach(name => {
             const div = document.createElement('div');
             div.className = "folder-item";
-            
             if (isProjectFolder(name)) {
                 div.innerHTML = `<span class='icon'>&#128194;</span> ${name}`;
                 div.onclick = () => {
@@ -109,59 +120,56 @@ async function fetchDirectories(path, expectedSegments) {
                 div.innerHTML = `<span class='icon'>&#128193;</span> ${name}`;
                 div.onclick = () => {
                     currentDirectoryPath = currentDirectoryPath === "" ? name : `${currentDirectoryPath}/${name}`;
-                    // Moving forward increases expected segments calculation by 1
                     fetchDirectories(currentDirectoryPath, expectedSegments + 1);
                 };
             }
             container.appendChild(div);
         });
     } catch (error) {
-        container.innerHTML = '<div style="padding:12px;color:red;">Failed to load directory.</div>';
+        container.innerHTML = '<div style="padding:12px;color:red;">Error loading directory.</div>';
+        console.error(error);
     }
 }
 
 async function triggerArchivePipeline(targetFullPath) {
+    if (!targetFullPath) return;
+
     const standardBtn = document.getElementById("executeBtn");
     const status = document.getElementById("status");
     const item = Office.context.mailbox.item;
 
-    if (!targetFullPath) return;
-
-    // Convert raw EWS ID to Graph-compatible REST ID
-    const convertedRestId = Office.context.mailbox.convertToRestId(
-        item.itemId,
-        Office.MailboxEnums.RestVersion.v2_0
-    );
-
     standardBtn.disabled = true;
-    document.querySelectorAll(".quick-btn").forEach(btn => btn.disabled = true);
-    
     status.innerText = "Transmitting to engine...";
     status.style.color = "#333";
 
     try {
+        const convertedRestId = Office.context.mailbox.convertToRestId(
+            item.itemId,
+            Office.MailboxEnums.RestVersion.v2_0
+        );
+
         const response = await fetch(EXECUTE_ARCHIVE_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-                itemId: convertedRestId, // Map the converted ID here
+                itemId: convertedRestId,
                 targetProject: targetFullPath
             })
         });
 
         if (response.ok) {
-            status.innerText = `Success: Email archived.`;
+            status.innerText = `Success: Archived to ${targetFullPath.split('/').pop()}`;
             status.style.color = "green";
             pushToRecentsStack(targetFullPath);
             renderQuickArchiveUI(); 
         } else {
-            throw new Error();
+            throw new Error("Server returned non-OK status");
         }
     } catch (error) {
-        status.innerText = "Archive failed. Check system connection.";
+        console.error("Archive Failure:", error);
+        status.innerText = "Archive failed. Check connection.";
         status.style.color = "red";
     } finally {
         standardBtn.disabled = (selectedTargetPath === "");
-        document.querySelectorAll(".quick-btn").forEach(btn => btn.disabled = false);
     }
 }
