@@ -1,5 +1,5 @@
 const GET_PROJECTS_URL = "https://default062a8e8e449048f39ee3b309e2cfa4.ad.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/405ddbd55c224c9ebe1d2bc5b85a6597/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=P9Tu-84M5_ZRI2lryh6GQTPq9erJ9yTd9JNk0CVZli4"; 
-const EXECUTE_ARCHIVE_URL = "https://outlook-proxy-service.vercel.app";
+const EXECUTE_ARCHIVE_URL = "https://outlook-proxy-service.vercel.app/api/archive";
 
 let currentDirectoryPath = ""; 
 let selectedTargetPath = ""; 
