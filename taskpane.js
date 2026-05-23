@@ -165,3 +165,31 @@ async function triggerArchivePipeline(targetFullPath) {
         status.innerText = "Failed";
     }
 }
+
+document.getElementById("analyzeBtn").onclick = async () => {
+    const status = document.getElementById("aiSummary");
+    status.innerText = "Analyzing project history...";
+
+    Office.context.mailbox.item.body.getAsync("text", async (result) => {
+        if (result.status !== Office.AsyncResultStatus.Succeeded) {
+            status.innerText = "Error reading email.";
+            return;
+        }
+
+        try {
+            const response = await fetch("https://emailpdfbackend.vercel.app/api/analyze", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    targetProject: selectedTargetPath, 
+                    emailContent: result.value 
+                })
+            });
+
+            const data = await response.json();
+            status.innerText = data.summary || "No insights found.";
+        } catch (e) {
+            status.innerText = "Connection error.";
+        }
+    });
+};
