@@ -15,6 +15,9 @@
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
+        /* Selection Status Styles */
+        #selectionStatus { padding: 10px; margin-bottom: 10px; background: #f3f2f1; font-size: 12px; border-radius: 4px; border: 1px solid #e1dfdd; }
+
         /* Existing Styles */
         .quick-container { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px dashed #edebe9; display: none; }
         .quick-list { display: flex; flex-direction: column; gap: 6px; max-height: 150px; overflow-y: auto; }
@@ -57,6 +60,10 @@
     </div>
 
     <div id="insights" class="tab-content">
+        <div id="selectionStatus">
+            Selected Project: <span id="selectedProjectName" style="font-weight:bold; color: #0078d4;">None</span>
+        </div>
+
         <button id="analyzeBtn" class="standard-btn">Analyze Project Context</button>
         <div id="aiSummary" style="margin-top:15px; font-size:13px; line-height:1.5; color:#333;"></div>
     </div>
