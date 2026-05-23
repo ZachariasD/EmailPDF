@@ -7,8 +7,7 @@ let selectedTargetPath = "";
 
 Office.onReady((info) => {
     if (info.host === Office.HostType.Outlook) {
-        console.log("System Ready: Initializing UI...");
-        renderQuickArchiveUI(); // Render on startup
+        renderQuickArchiveUI();
         fetchDirectories("", 2);
         document.getElementById("executeBtn").onclick = () => triggerArchivePipeline(selectedTargetPath);
     }
@@ -16,7 +15,6 @@ Office.onReady((info) => {
 
 const isProjectFolder = (folderName) => /^\d{5}/.test(folderName);
 
-// 1. Unified Render Function
 function renderQuickArchiveUI() {
     const quickSection = document.getElementById("quickSection");
     const quickList = document.getElementById("quickList");
@@ -25,10 +23,7 @@ function renderQuickArchiveUI() {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
         recents = stored ? JSON.parse(stored) : [];
-    } catch(e) {
-        console.error("UI Render Error:", e);
-        recents = [];
-    }
+    } catch(e) { recents = []; }
 
     if (recents && recents.length > 0) {
         quickList.innerHTML = "";
@@ -46,28 +41,18 @@ function renderQuickArchiveUI() {
     }
 }
 
-// 2. Unified Storage Logic
 function pushToRecentsStack(fullPath) {
     if (!fullPath) return;
-
     let recents = [];
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
         recents = stored ? JSON.parse(stored) : [];
-    } catch(e) {
-        recents = [];
-    }
+    } catch(e) { recents = []; }
 
-    // Filter out existing to avoid duplicates, add to front
     recents = recents.filter(item => item !== fullPath);
     recents.unshift(fullPath);
-    
-    // Keep only last 10
     if (recents.length > 10) recents = recents.slice(0, 10);
-    
     localStorage.setItem(STORAGE_KEY, JSON.stringify(recents));
-    
-    // Trigger immediate UI refresh
     renderQuickArchiveUI();
 }
 
@@ -76,8 +61,6 @@ async function fetchDirectories(path, expectedSegments) {
     const pathDisplay = document.getElementById("currentPathDisplay");
     
     container.innerHTML = '<div style="padding:12px;color:#666;">Loading...</div>';
-    document.getElementById("executeBtn").disabled = true;
-    selectedTargetPath = "";
     
     pathDisplay.innerText = path === "" ? "/Project_Folder/" : `/Project_Folder/${path}/`;
 
@@ -90,7 +73,6 @@ async function fetchDirectories(path, expectedSegments) {
         
         if (!response.ok) throw new Error("API Connection Failed");
         const folders = await response.json();
-        
         container.innerHTML = "";
         
         if (path !== "") {
@@ -115,6 +97,8 @@ async function fetchDirectories(path, expectedSegments) {
                     document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('selected'));
                     div.classList.add('selected');
                     selectedTargetPath = currentDirectoryPath === "" ? name : `${currentDirectoryPath}/${name}`;
+                    // SYNC UI
+                    document.getElementById("selectedProjectName").innerText = name;
                     document.getElementById("executeBtn").disabled = false;
                 };
             } else {
@@ -128,25 +112,17 @@ async function fetchDirectories(path, expectedSegments) {
         });
     } catch (error) {
         container.innerHTML = '<div style="padding:12px;color:red;">Error loading directory.</div>';
-        console.error(error);
     }
 }
 
-// 3. Updated Pipeline with UI callback
 async function triggerArchivePipeline(targetFullPath) {
     const status = document.getElementById("status");
     const item = Office.context.mailbox.item;
-
     if (!item || !item.itemId) return;
 
     status.innerText = "Archiving...";
-    
     try {
-        const convertedRestId = Office.context.mailbox.convertToRestId(
-            item.itemId,
-            Office.MailboxEnums.RestVersion.v2_0
-        );
-
+        const convertedRestId = Office.context.mailbox.convertToRestId(item.itemId, Office.MailboxEnums.RestVersion.v2_0);
         const response = await fetch(EXECUTE_ARCHIVE_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -155,24 +131,29 @@ async function triggerArchivePipeline(targetFullPath) {
 
         if (response.ok) {
             status.innerText = "Success!";
-            // Update UI and Storage
             pushToRecentsStack(targetFullPath); 
         } else {
             status.innerText = "Error: " + response.status;
         }
     } catch (error) {
-        console.error(error);
         status.innerText = "Failed";
     }
 }
 
+// FIXED: Validate selection before analyze
 document.getElementById("analyzeBtn").onclick = async () => {
-    const status = document.getElementById("aiSummary");
-    status.innerText = "Analyzing project history...";
+    const summaryDiv = document.getElementById("aiSummary");
+    
+    if (!selectedTargetPath) {
+        summaryDiv.innerText = "Error: Please select a project folder in the Archive tab first.";
+        return;
+    }
+
+    summaryDiv.innerText = "Analyzing project history...";
 
     Office.context.mailbox.item.body.getAsync("text", async (result) => {
         if (result.status !== Office.AsyncResultStatus.Succeeded) {
-            status.innerText = "Error reading email.";
+            summaryDiv.innerText = "Error reading email.";
             return;
         }
 
@@ -186,10 +167,15 @@ document.getElementById("analyzeBtn").onclick = async () => {
                 })
             });
 
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || "Server returned " + response.status);
+            }
+
             const data = await response.json();
-            status.innerText = data.summary || "No insights found.";
+            summaryDiv.innerText = data.summary || "No insights found.";
         } catch (e) {
-            status.innerText = "Connection error.";
+            summaryDiv.innerText = "Connection error: " + e.message;
         }
     });
 };
