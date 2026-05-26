@@ -7,11 +7,9 @@ let selectedTargetPath = "";
 
 Office.onReady((info) => {
     if (info.host === Office.HostType.Outlook) {
-        console.log("System Ready: Initializing UI...");
         renderQuickArchiveUI();
-        populateDropdown(); // Sync Insights Tab
+        populateDropdown(); 
         fetchDirectories("", 2);
-        
         document.getElementById("executeBtn").onclick = () => triggerArchivePipeline(selectedTargetPath);
     }
 });
@@ -52,12 +50,10 @@ function populateDropdown() {
         const option = document.createElement("option");
         option.value = path;
         option.text = path.split('/').pop();
-        // If this matches our current selection, auto-select it
         if (path === selectedTargetPath) option.selected = true;
         dropdown.appendChild(option);
     });
 
-    // Handle Dropdown Change
     dropdown.onchange = (e) => {
         selectedTargetPath = e.target.value;
         document.getElementById("executeBtn").disabled = !selectedTargetPath;
@@ -125,7 +121,7 @@ async function fetchDirectories(path, expectedSegments) {
                     div.classList.add('selected');
                     selectedTargetPath = currentDirectoryPath === "" ? name : `${currentDirectoryPath}/${name}`;
                     document.getElementById("executeBtn").disabled = false;
-                    // Force dropdown to sync with folder browser
+                    
                     const dropdown = document.getElementById("projectDropdown");
                     if (dropdown) dropdown.value = selectedTargetPath;
                 };
