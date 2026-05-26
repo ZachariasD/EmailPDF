@@ -7,25 +7,24 @@ let selectedTargetPath = "";
 
 Office.onReady((info) => {
     if (info.host === Office.HostType.Outlook) {
+        console.log("System Ready: Initializing UI...");
         renderQuickArchiveUI();
+        populateDropdown(); // Sync Insights Tab
         fetchDirectories("", 2);
+        
         document.getElementById("executeBtn").onclick = () => triggerArchivePipeline(selectedTargetPath);
     }
 });
 
 const isProjectFolder = (folderName) => /^\d{5}/.test(folderName);
 
+// --- 1. UI Sync: Recent Projects (Archive Tab) ---
 function renderQuickArchiveUI() {
     const quickSection = document.getElementById("quickSection");
     const quickList = document.getElementById("quickList");
-    
-    let recents = [];
-    try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        recents = stored ? JSON.parse(stored) : [];
-    } catch(e) { recents = []; }
+    let recents = getRecents();
 
-    if (recents && recents.length > 0) {
+    if (recents.length > 0) {
         quickList.innerHTML = "";
         recents.forEach(pathData => {
             const btn = document.createElement("button");
@@ -41,27 +40,55 @@ function renderQuickArchiveUI() {
     }
 }
 
-function pushToRecentsStack(fullPath) {
-    if (!fullPath) return;
-    let recents = [];
+// --- 2. UI Sync: Dropdown (Insights Tab) ---
+function populateDropdown() {
+    const dropdown = document.getElementById("projectDropdown");
+    if (!dropdown) return;
+    
+    const recents = getRecents();
+    dropdown.innerHTML = '<option value="">-- Choose a project --</option>';
+    
+    recents.forEach(path => {
+        const option = document.createElement("option");
+        option.value = path;
+        option.text = path.split('/').pop();
+        // If this matches our current selection, auto-select it
+        if (path === selectedTargetPath) option.selected = true;
+        dropdown.appendChild(option);
+    });
+
+    // Handle Dropdown Change
+    dropdown.onchange = (e) => {
+        selectedTargetPath = e.target.value;
+        document.getElementById("executeBtn").disabled = !selectedTargetPath;
+    };
+}
+
+function getRecents() {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
-        recents = stored ? JSON.parse(stored) : [];
-    } catch(e) { recents = []; }
+        return stored ? JSON.parse(stored) : [];
+    } catch(e) { return []; }
+}
 
+function pushToRecentsStack(fullPath) {
+    if (!fullPath) return;
+    let recents = getRecents();
     recents = recents.filter(item => item !== fullPath);
     recents.unshift(fullPath);
     if (recents.length > 10) recents = recents.slice(0, 10);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(recents));
+    
     renderQuickArchiveUI();
+    populateDropdown();
 }
 
+// --- 3. Directory Browser (Archive Tab) ---
 async function fetchDirectories(path, expectedSegments) {
     const container = document.getElementById("directoryBrowser");
     const pathDisplay = document.getElementById("currentPathDisplay");
     
     container.innerHTML = '<div style="padding:12px;color:#666;">Loading...</div>';
-    
     pathDisplay.innerText = path === "" ? "/Project_Folder/" : `/Project_Folder/${path}/`;
 
     try {
@@ -97,9 +124,10 @@ async function fetchDirectories(path, expectedSegments) {
                     document.querySelectorAll('.folder-item').forEach(el => el.classList.remove('selected'));
                     div.classList.add('selected');
                     selectedTargetPath = currentDirectoryPath === "" ? name : `${currentDirectoryPath}/${name}`;
-                    // SYNC UI
-                    document.getElementById("selectedProjectName").innerText = name;
                     document.getElementById("executeBtn").disabled = false;
+                    // Force dropdown to sync with folder browser
+                    const dropdown = document.getElementById("projectDropdown");
+                    if (dropdown) dropdown.value = selectedTargetPath;
                 };
             } else {
                 div.innerHTML = `<span class='icon'>&#128193;</span> ${name}`;
@@ -115,6 +143,7 @@ async function fetchDirectories(path, expectedSegments) {
     }
 }
 
+// --- 4. Pipelines ---
 async function triggerArchivePipeline(targetFullPath) {
     const status = document.getElementById("status");
     const item = Office.context.mailbox.item;
@@ -140,12 +169,11 @@ async function triggerArchivePipeline(targetFullPath) {
     }
 }
 
-// FIXED: Validate selection before analyze
 document.getElementById("analyzeBtn").onclick = async () => {
     const summaryDiv = document.getElementById("aiSummary");
     
     if (!selectedTargetPath) {
-        summaryDiv.innerText = "Error: Please select a project folder in the Archive tab first.";
+        summaryDiv.innerText = "Error: Please select a project folder first.";
         return;
     }
 
