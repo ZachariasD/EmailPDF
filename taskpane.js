@@ -17,7 +17,10 @@ Office.onReady((info) => {
         
         // Load saved root setting if it exists
         const savedRoot = localStorage.getItem(ROOT_STORAGE_KEY);
-        if (savedRoot) document.getElementById("rootInput").value = savedRoot;
+        if (savedRoot) {
+            const rootInput = document.getElementById("rootInput");
+            if (rootInput) rootInput.value = savedRoot;
+        }
     }
 });
 
@@ -27,7 +30,8 @@ const isProjectFolder = (folderName) => /^\d{5}/.test(folderName);
 function saveRoot() {
     const root = document.getElementById("rootInput").value;
     localStorage.setItem(ROOT_STORAGE_KEY, root);
-    document.getElementById("settingsStatus").innerText = "Saved! Please reload the add-in.";
+    const status = document.getElementById("settingsStatus");
+    if (status) status.innerText = "Saved! Please reload the add-in.";
 }
 
 function getRootPath() {
@@ -38,8 +42,9 @@ function getRootPath() {
 function renderQuickArchiveUI() {
     const quickSection = document.getElementById("quickSection");
     const quickList = document.getElementById("quickList");
-    let recents = getRecents();
+    if (!quickSection || !quickList) return;
 
+    let recents = getRecents();
     if (recents.length > 0) {
         quickList.innerHTML = "";
         recents.forEach(pathData => {
@@ -59,39 +64,24 @@ function renderQuickArchiveUI() {
 // --- 3. UI Sync: Dropdown (Insights Tab) ---
 function populateDropdown() {
     const dropdown = document.getElementById("projectDropdown");
-    
-    // DEBUG: If this logs an error, your HTML file is NOT updated
-    if (!dropdown) {
-        console.error("ERROR: #projectDropdown not found in HTML. Check your taskpane.html file.");
-        return;
-    }
+    if (!dropdown) return;
     
     const recents = getRecents();
-    console.log("Found recent projects:", recents); // DEBUG: Check console to see if recents are loading
-    
     dropdown.innerHTML = '<option value="">-- Choose a project --</option>';
     
     recents.forEach(path => {
         const option = document.createElement("option");
         option.value = path;
         option.text = path.split('/').pop();
-        
-        // Auto-select if this path was already selected
-        if (path === selectedTargetPath) {
-            option.selected = true;
-        }
+        if (path === selectedTargetPath) option.selected = true;
         dropdown.appendChild(option);
     });
 
     dropdown.onchange = (e) => {
         selectedTargetPath = e.target.value;
-        console.log("Project selected from dropdown:", selectedTargetPath);
-        
-        // Update both buttons
         const executeBtn = document.getElementById("executeBtn");
         if (executeBtn) executeBtn.disabled = !selectedTargetPath;
     };
-};
 }
 
 function getRecents() {
@@ -118,6 +108,7 @@ async function fetchDirectories(path, expectedSegments) {
     const root = getRootPath();
     const container = document.getElementById("directoryBrowser");
     const pathDisplay = document.getElementById("currentPathDisplay");
+    if (!container || !pathDisplay) return;
     
     container.innerHTML = '<div style="padding:12px;color:#666;">Loading...</div>';
     pathDisplay.innerText = path === "" ? `/${root}/` : `/${root}/${path}/`;
@@ -126,7 +117,6 @@ async function fetchDirectories(path, expectedSegments) {
         const response = await fetch(GET_PROJECTS_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            // Sending 'root' now so Power Automate knows where to start
             body: JSON.stringify({ root, path, expectedSegments }) 
         });
         
@@ -179,12 +169,11 @@ async function fetchDirectories(path, expectedSegments) {
 async function triggerArchivePipeline(targetFullPath) {
     const status = document.getElementById("status");
     const item = Office.context.mailbox.item;
-    if (!item || !item.itemId) return;
+    if (!item || !item.itemId || !status) return;
 
     status.innerText = "Archiving...";
     try {
         const convertedRestId = Office.context.mailbox.convertToRestId(item.itemId, Office.MailboxEnums.RestVersion.v2_0);
-        // Include root here if the backend needs to handle pathing relative to user
         const response = await fetch(EXECUTE_ARCHIVE_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -208,6 +197,7 @@ async function triggerArchivePipeline(targetFullPath) {
 
 document.getElementById("analyzeBtn").onclick = async () => {
     const summaryDiv = document.getElementById("aiSummary");
+    if (!summaryDiv) return;
     
     if (!selectedTargetPath) {
         summaryDiv.innerText = "Error: Please select a project folder first.";
