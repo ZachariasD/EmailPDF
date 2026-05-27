@@ -1,22 +1,40 @@
 const GET_PROJECTS_URL = "https://default062a8e8e449048f39ee3b309e2cfa4.ad.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/405ddbd55c224c9ebe1d2bc5b85a6597/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=P9Tu-84M5_ZRI2lryh6GQTPq9erJ9yTd9JNk0CVZli4";
 const EXECUTE_ARCHIVE_URL = "https://emailpdfbackend.vercel.app/api/archive";
 const STORAGE_KEY = "recentProjectsList";
+const ROOT_STORAGE_KEY = "userRootFolder";
 
 let currentDirectoryPath = "";
 let selectedTargetPath = "";
 
 Office.onReady((info) => {
     if (info.host === Office.HostType.Outlook) {
+        console.log("System Ready...");
         renderQuickArchiveUI();
         populateDropdown(); 
         fetchDirectories("", 2);
+        
         document.getElementById("executeBtn").onclick = () => triggerArchivePipeline(selectedTargetPath);
+        
+        // Load saved root setting if it exists
+        const savedRoot = localStorage.getItem(ROOT_STORAGE_KEY);
+        if (savedRoot) document.getElementById("rootInput").value = savedRoot;
     }
 });
 
 const isProjectFolder = (folderName) => /^\d{5}/.test(folderName);
 
-// --- 1. UI Sync: Recent Projects (Archive Tab) ---
+// --- 1. Settings Logic ---
+function saveRoot() {
+    const root = document.getElementById("rootInput").value;
+    localStorage.setItem(ROOT_STORAGE_KEY, root);
+    document.getElementById("settingsStatus").innerText = "Saved! Please reload the add-in.";
+}
+
+function getRootPath() {
+    return localStorage.getItem(ROOT_STORAGE_KEY) || "Project_Folder";
+}
+
+// --- 2. UI Sync: Recent Projects (Archive Tab) ---
 function renderQuickArchiveUI() {
     const quickSection = document.getElementById("quickSection");
     const quickList = document.getElementById("quickList");
@@ -38,7 +56,7 @@ function renderQuickArchiveUI() {
     }
 }
 
-// --- 2. UI Sync: Dropdown (Insights Tab) ---
+// --- 3. UI Sync: Dropdown (Insights Tab) ---
 function populateDropdown() {
     const dropdown = document.getElementById("projectDropdown");
     if (!dropdown) return;
@@ -79,19 +97,21 @@ function pushToRecentsStack(fullPath) {
     populateDropdown();
 }
 
-// --- 3. Directory Browser (Archive Tab) ---
+// --- 4. Directory Browser (Archive Tab) ---
 async function fetchDirectories(path, expectedSegments) {
+    const root = getRootPath();
     const container = document.getElementById("directoryBrowser");
     const pathDisplay = document.getElementById("currentPathDisplay");
     
     container.innerHTML = '<div style="padding:12px;color:#666;">Loading...</div>';
-    pathDisplay.innerText = path === "" ? "/Project_Folder/" : `/Project_Folder/${path}/`;
+    pathDisplay.innerText = path === "" ? `/${root}/` : `/${root}/${path}/`;
 
     try {
         const response = await fetch(GET_PROJECTS_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path, expectedSegments })
+            // Sending 'root' now so Power Automate knows where to start
+            body: JSON.stringify({ root, path, expectedSegments }) 
         });
         
         if (!response.ok) throw new Error("API Connection Failed");
@@ -139,7 +159,7 @@ async function fetchDirectories(path, expectedSegments) {
     }
 }
 
-// --- 4. Pipelines ---
+// --- 5. Pipelines ---
 async function triggerArchivePipeline(targetFullPath) {
     const status = document.getElementById("status");
     const item = Office.context.mailbox.item;
@@ -148,10 +168,15 @@ async function triggerArchivePipeline(targetFullPath) {
     status.innerText = "Archiving...";
     try {
         const convertedRestId = Office.context.mailbox.convertToRestId(item.itemId, Office.MailboxEnums.RestVersion.v2_0);
+        // Include root here if the backend needs to handle pathing relative to user
         const response = await fetch(EXECUTE_ARCHIVE_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ itemId: convertedRestId, targetProject: targetFullPath })
+            body: JSON.stringify({ 
+                itemId: convertedRestId, 
+                targetProject: targetFullPath,
+                root: getRootPath()
+            })
         });
 
         if (response.ok) {
@@ -187,7 +212,8 @@ document.getElementById("analyzeBtn").onclick = async () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     targetProject: selectedTargetPath, 
-                    emailContent: result.value 
+                    emailContent: result.value,
+                    root: getRootPath()
                 })
             });
 
