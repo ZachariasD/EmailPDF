@@ -34,6 +34,10 @@ function getRootPath() {
     return localStorage.getItem(ROOT_STORAGE_KEY) || "Project_Folder";
 }
 
+function getUserEmail() {
+    return Office.context.mailbox.userProfile.emailAddress || "";
+}
+
 // --- 2. UI Sync: Recent Projects (Archive Tab) ---
 function renderQuickArchiveUI() {
     const quickSection = document.getElementById("quickSection");
@@ -100,6 +104,7 @@ function pushToRecentsStack(fullPath) {
 // --- 4. Directory Browser (Archive Tab) ---
 async function fetchDirectories(path, expectedSegments) {
     const root = getRootPath();
+    const userEmail = getUserEmail();
     const container = document.getElementById("directoryBrowser");
     const pathDisplay = document.getElementById("currentPathDisplay");
     
@@ -110,8 +115,7 @@ async function fetchDirectories(path, expectedSegments) {
         const response = await fetch(GET_PROJECTS_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            // Sending 'root' now so Power Automate knows where to start
-            body: JSON.stringify({ root, path, expectedSegments }) 
+            body: JSON.stringify({ root, path, expectedSegments, userEmail }) 
         });
         
         if (!response.ok) throw new Error("API Connection Failed");
@@ -168,14 +172,14 @@ async function triggerArchivePipeline(targetFullPath) {
     status.innerText = "Archiving...";
     try {
         const convertedRestId = Office.context.mailbox.convertToRestId(item.itemId, Office.MailboxEnums.RestVersion.v2_0);
-        // Include root here if the backend needs to handle pathing relative to user
         const response = await fetch(EXECUTE_ARCHIVE_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ 
                 itemId: convertedRestId, 
                 targetProject: targetFullPath,
-                root: getRootPath()
+                root: getRootPath(),
+                userEmail: getUserEmail()
             })
         });
 
@@ -213,7 +217,8 @@ document.getElementById("analyzeBtn").onclick = async () => {
                 body: JSON.stringify({ 
                     targetProject: selectedTargetPath, 
                     emailContent: result.value,
-                    root: getRootPath()
+                    root: getRootPath(),
+                    userEmail: getUserEmail()
                 })
             });
 
