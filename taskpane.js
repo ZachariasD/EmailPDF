@@ -1,50 +1,27 @@
 const GET_PROJECTS_URL = "https://default062a8e8e449048f39ee3b309e2cfa4.ad.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/405ddbd55c224c9ebe1d2bc5b85a6597/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=P9Tu-84M5_ZRI2lryh6GQTPq9erJ9yTd9JNk0CVZli4";
 const EXECUTE_ARCHIVE_URL = "https://emailpdfbackend.vercel.app/api/archive";
 const STORAGE_KEY = "recentProjectsList";
-const ROOT_STORAGE_KEY = "userRootFolder";
 
 let currentDirectoryPath = "";
 let selectedTargetPath = "";
 
 Office.onReady((info) => {
     if (info.host === Office.HostType.Outlook) {
-        console.log("System Ready...");
         renderQuickArchiveUI();
         populateDropdown(); 
         fetchDirectories("", 2);
-        
         document.getElementById("executeBtn").onclick = () => triggerArchivePipeline(selectedTargetPath);
-        
-        // Load saved root setting if it exists
-        const savedRoot = localStorage.getItem(ROOT_STORAGE_KEY);
-        if (savedRoot) {
-            const rootInput = document.getElementById("rootInput");
-            if (rootInput) rootInput.value = savedRoot;
-        }
     }
 });
 
 const isProjectFolder = (folderName) => /^\d{5}/.test(folderName);
 
-// --- 1. Settings Logic ---
-function saveRoot() {
-    const root = document.getElementById("rootInput").value;
-    localStorage.setItem(ROOT_STORAGE_KEY, root);
-    const status = document.getElementById("settingsStatus");
-    if (status) status.innerText = "Saved! Please reload the add-in.";
-}
-
-function getRootPath() {
-    return localStorage.getItem(ROOT_STORAGE_KEY) || "Project_Folder";
-}
-
-// --- 2. UI Sync: Recent Projects (Archive Tab) ---
+// --- 1. UI Sync: Recent Projects (Archive Tab) ---
 function renderQuickArchiveUI() {
     const quickSection = document.getElementById("quickSection");
     const quickList = document.getElementById("quickList");
-    if (!quickSection || !quickList) return;
-
     let recents = getRecents();
+
     if (recents.length > 0) {
         quickList.innerHTML = "";
         recents.forEach(pathData => {
@@ -61,7 +38,7 @@ function renderQuickArchiveUI() {
     }
 }
 
-// --- 3. UI Sync: Dropdown (Insights Tab) ---
+// --- 2. UI Sync: Dropdown (Insights Tab) ---
 function populateDropdown() {
     const dropdown = document.getElementById("projectDropdown");
     if (!dropdown) return;
@@ -79,8 +56,7 @@ function populateDropdown() {
 
     dropdown.onchange = (e) => {
         selectedTargetPath = e.target.value;
-        const executeBtn = document.getElementById("executeBtn");
-        if (executeBtn) executeBtn.disabled = !selectedTargetPath;
+        document.getElementById("executeBtn").disabled = !selectedTargetPath;
     };
 }
 
@@ -103,21 +79,19 @@ function pushToRecentsStack(fullPath) {
     populateDropdown();
 }
 
-// --- 4. Directory Browser (Archive Tab) ---
+// --- 3. Directory Browser (Archive Tab) ---
 async function fetchDirectories(path, expectedSegments) {
-    const root = getRootPath();
     const container = document.getElementById("directoryBrowser");
     const pathDisplay = document.getElementById("currentPathDisplay");
-    if (!container || !pathDisplay) return;
     
     container.innerHTML = '<div style="padding:12px;color:#666;">Loading...</div>';
-    pathDisplay.innerText = path === "" ? `/${root}/` : `/${root}/${path}/`;
+    pathDisplay.innerText = path === "" ? "/Project_Folder/" : `/Project_Folder/${path}/`;
 
     try {
         const response = await fetch(GET_PROJECTS_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ root, path, expectedSegments }) 
+            body: JSON.stringify({ path, expectedSegments })
         });
         
         if (!response.ok) throw new Error("API Connection Failed");
@@ -165,11 +139,11 @@ async function fetchDirectories(path, expectedSegments) {
     }
 }
 
-// --- 5. Pipelines ---
+// --- 4. Pipelines ---
 async function triggerArchivePipeline(targetFullPath) {
     const status = document.getElementById("status");
     const item = Office.context.mailbox.item;
-    if (!item || !item.itemId || !status) return;
+    if (!item || !item.itemId) return;
 
     status.innerText = "Archiving...";
     try {
@@ -177,11 +151,7 @@ async function triggerArchivePipeline(targetFullPath) {
         const response = await fetch(EXECUTE_ARCHIVE_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                itemId: convertedRestId, 
-                targetProject: targetFullPath,
-                root: getRootPath()
-            })
+            body: JSON.stringify({ itemId: convertedRestId, targetProject: targetFullPath })
         });
 
         if (response.ok) {
@@ -197,7 +167,6 @@ async function triggerArchivePipeline(targetFullPath) {
 
 document.getElementById("analyzeBtn").onclick = async () => {
     const summaryDiv = document.getElementById("aiSummary");
-    if (!summaryDiv) return;
     
     if (!selectedTargetPath) {
         summaryDiv.innerText = "Error: Please select a project folder first.";
@@ -218,8 +187,7 @@ document.getElementById("analyzeBtn").onclick = async () => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     targetProject: selectedTargetPath, 
-                    emailContent: result.value,
-                    root: getRootPath()
+                    emailContent: result.value 
                 })
             });
 
