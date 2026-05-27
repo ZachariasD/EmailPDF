@@ -59,23 +59,39 @@ function renderQuickArchiveUI() {
 // --- 3. UI Sync: Dropdown (Insights Tab) ---
 function populateDropdown() {
     const dropdown = document.getElementById("projectDropdown");
-    if (!dropdown) return;
+    
+    // DEBUG: If this logs an error, your HTML file is NOT updated
+    if (!dropdown) {
+        console.error("ERROR: #projectDropdown not found in HTML. Check your taskpane.html file.");
+        return;
+    }
     
     const recents = getRecents();
+    console.log("Found recent projects:", recents); // DEBUG: Check console to see if recents are loading
+    
     dropdown.innerHTML = '<option value="">-- Choose a project --</option>';
     
     recents.forEach(path => {
         const option = document.createElement("option");
         option.value = path;
         option.text = path.split('/').pop();
-        if (path === selectedTargetPath) option.selected = true;
+        
+        // Auto-select if this path was already selected
+        if (path === selectedTargetPath) {
+            option.selected = true;
+        }
         dropdown.appendChild(option);
     });
 
     dropdown.onchange = (e) => {
         selectedTargetPath = e.target.value;
-        document.getElementById("executeBtn").disabled = !selectedTargetPath;
+        console.log("Project selected from dropdown:", selectedTargetPath);
+        
+        // Update both buttons
+        const executeBtn = document.getElementById("executeBtn");
+        if (executeBtn) executeBtn.disabled = !selectedTargetPath;
     };
+};
 }
 
 function getRecents() {
