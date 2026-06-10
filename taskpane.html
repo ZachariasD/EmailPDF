@@ -5,209 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
     <style>
-        :root {
-            --primary: #0f6cbd;
-            --primary-hover: #115ea3;
-            --text-main: #242424;
-            --text-muted: #616161;
-            --bg-base: #ffffff;
-            --bg-subtle: #f5f5f5;
-            --border-light: #e0e0e0;
-            --radius: 6px;
-            --transition: 0.2s ease;
-        }
-
-        body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-            padding: 20px;
-            margin: 0;
-            box-sizing: border-box;
-            color: var(--text-main);
-            background: var(--bg-base);
-        }
-
-        .label {
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--text-main);
-            letter-spacing: 0.2px;
-        }
-
-        /* Tab Navigation */
-        .tabs {
-            display: flex;
-            gap: 16px;
-            margin-bottom: 24px;
-            border-bottom: 1px solid var(--border-light);
-        }
+        body { font-family: 'Segoe UI', sans-serif; padding: 16px; margin: 0; box-sizing: border-box; }
+        .label { font-size: 11px; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; color: #555; }
         
-        .tab-link {
-            padding: 8px 4px;
-            cursor: pointer;
-            background: transparent;
-            border: none;
-            border-bottom: 2px solid transparent;
-            font-size: 14px;
-            color: var(--text-muted);
-            transition: var(--transition);
-        }
-        
-        .tab-link:hover {
-            color: var(--text-main);
-        }
-        
-        .tab-link.active {
-            color: var(--primary);
-            font-weight: 600;
-            border-bottom: 2px solid var(--primary);
-        }
-        
+        /* Tab Styles */
+        .tabs { display: flex; gap: 2px; margin-bottom: 16px; border-bottom: 1px solid #ccc; }
+        .tab-link { padding: 8px 16px; cursor: pointer; background: #f3f2f1; border: none; font-size: 12px; }
+        .tab-link.active { background: #0078d4; color: white; font-weight: bold; }
         .tab-content { display: none; }
-        .tab-content.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .tab-content.active { display: block; }
 
-        /* Recent Projects */
-        .quick-container {
-            margin-bottom: 24px;
-        }
+        /* Existing Styles */
+        .quick-container { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px dashed #edebe9; display: none; }
+        .quick-list { display: flex; flex-direction: column; gap: 6px; max-height: 150px; overflow-y: auto; }
+        .quick-btn { background-color: #107c41; color: white; width: 100%; padding: 10px 12px; font-size: 13px; border: none; cursor: pointer; font-weight: bold; text-align: left; display: flex; justify-content: space-between; border-radius: 2px; }
+        .quick-btn:hover { background-color: #0b5930; }
         
-        .quick-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            max-height: 160px;
-            overflow-y: auto;
-        }
+        .directory-box { border: 1px solid #ababab; max-height: 220px; overflow-y: auto; margin-bottom: 12px; border-radius: 2px; background: #fff; }
+        .folder-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #f3f3f3; font-size: 13px; display: flex; align-items: center; }
+        .folder-item:hover { background-color: #f3f2f1; }
+        .folder-item.selected { background-color: #edebe9; font-weight: bold; border-left: 4px solid #0078d4; }
+        .folder-item.back-btn { font-weight: bold; color: #0078d4; background-color: #f8f8f8; position: sticky; top: 0; border-bottom: 2px solid #eaeaea; }
         
-        .quick-btn {
-            background-color: var(--bg-base);
-            color: var(--text-main);
-            border: 1px solid var(--border-light);
-            width: 100%;
-            padding: 10px 14px;
-            font-size: 13px;
-            cursor: pointer;
-            text-align: left;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-radius: var(--radius);
-            transition: var(--transition);
-        }
-        
-        .quick-btn:hover {
-            background-color: var(--bg-subtle);
-            border-color: #d1d1d1;
-        }
-        
-        .arrow-icon {
-            color: var(--text-muted);
-            font-size: 16px;
-        }
-
-        /* Directory Browser */
-        #currentPathDisplay {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-            word-break: break-all;
-            font-family: monospace;
-        }
-        
-        .directory-box {
-            border: 1px solid var(--border-light);
-            max-height: 240px;
-            overflow-y: auto;
-            margin-bottom: 20px;
-            border-radius: var(--radius);
-            background: var(--bg-base);
-        }
-        
-        .folder-item {
-            padding: 10px 14px;
-            cursor: pointer;
-            border-bottom: 1px solid var(--border-light);
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: var(--transition);
-        }
-        
-        .folder-item:last-child { border-bottom: none; }
-        .folder-item:hover { background-color: var(--bg-subtle); }
-        .folder-item.selected {
-            background-color: #f0f6ff;
-            font-weight: 600;
-        }
-        
-        .folder-icon {
-            width: 18px;
-            height: 18px;
-            fill: #dcb67a;
-            flex-shrink: 0;
-        }
-
-        /* Standard Controls */
-        .standard-btn {
-            width: 100%;
-            padding: 12px;
-            font-size: 14px;
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            border-radius: var(--radius);
-            cursor: pointer;
-            font-weight: 600;
-            transition: var(--transition);
-        }
-        
-        .standard-btn:hover:not(:disabled) {
-            background-color: var(--primary-hover);
-        }
-        
-        .standard-btn:disabled {
-            background-color: var(--bg-subtle);
-            color: #a19f9d;
-            border: 1px solid var(--border-light);
-            cursor: not-allowed;
-        }
-
-        input[type="text"], select {
-            width: 100%;
-            padding: 10px 12px;
-            margin-bottom: 16px;
-            border: 1px solid var(--border-light);
-            border-radius: var(--radius);
-            box-sizing: border-box;
-            font-family: inherit;
-            font-size: 13px;
-            color: var(--text-main);
-            background-color: var(--bg-base);
-            transition: var(--transition);
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23616161' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            background-size: 14px;
-        }
-        
-        input[type="text"] {
-            background-image: none;
-        }
-        
-        input[type="text"]:focus, select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 2px rgba(15, 108, 189, 0.2);
-        }
-
-        #status, #settingsStatus, #aiSummary {
-            font-size: 13px;
-            margin-top: 12px;
-            color: var(--text-muted);
-        }
+        .icon { display: inline-block; width: 20px; color: #888; }
+        .standard-btn { width: 100%; padding: 10px; font-size: 14px; background-color: #0078d4; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .standard-btn:disabled { background-color: #c8c8c8; cursor: not-allowed; }
+        #status { font-size: 12px; margin-top: 10px; font-weight: 500; }
+        #currentPathDisplay { font-size: 10px; color: #888; margin-bottom: 4px; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -218,16 +42,15 @@
     </div>
 
     <div id="archive" class="tab-content active">
-        <div id="quickSection" class="quick-container" style="display: block;">
+        <div id="quickSection" class="quick-container">
             <div class="label">Recent Projects</div>
-            <div id="quickList" class="quick-list">
-                </div>
+            <div id="quickList" class="quick-list"></div>
         </div>
 
         <div class="label">Browse Directory</div>
         <div id="currentPathDisplay">/Project_Folder/</div>
         <div id="directoryBrowser" class="directory-box">
-            <div style="padding:12px; color:var(--text-muted); font-size:13px;">Connecting...</div>
+            <div style="padding:12px; color:#666; font-size:13px;">Connecting...</div>
         </div>
         
         <button id="executeBtn" class="standard-btn" disabled>Archive Email</button>
@@ -235,13 +58,30 @@
     </div>
 
     <div id="insights" class="tab-content">
-        <div class="label">Select Project to Analyze</div>
-        <select id="projectDropdown">
+        <div class="label" style="margin-top:10px;">Select Project to Analyze</div>
+        <select id="projectDropdown" style="width: 100%; padding: 8px; margin-bottom: 15px; border: 1px solid #ababab; box-sizing: border-box;">
             <option value="">-- Choose a project --</option>
         </select>
     
         <button id="analyzeBtn" class="standard-btn">Analyze Project Context</button>
-        <div id="aiSummary"></div>
+        <div id="aiSummary" style="margin-top:15px; font-size:13px; line-height:1.5; color:#333;"></div>
     </div>
 
-    <div id="settings"
+    <div id="settings" class="tab-content">
+        <div class="label">Root Folder Name</div>
+        <input type="text" id="rootInput" placeholder="e.g., Project_Folder" style="width:100%; padding:8px; margin-bottom:10px; box-sizing: border-box;">
+        <button onclick="saveRoot()" class="standard-btn">Save Root Folder</button>
+        <div id="settingsStatus" style="margin-top:10px; font-size:12px; color: #555;"></div>
+    </div>
+
+    <script>
+        function openTab(evt, tabName) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            evt.currentTarget.classList.add('active');
+        }
+    </script>
+    <script src="taskpane.js"></script>
+</body>
+</html>
